@@ -930,7 +930,7 @@ public class Lang
         new(LangId.Menu_MnuCheckForUpdate_ProFromStore, "Get ImageGlass Pro from Store"), // v10.0
 
         new(LangId.Menu_MnuSetDefaultPhotoViewer, "Set default photo viewer"), //v9.0
-        new(LangId.Menu_MnuSetDefaultPhotoViewer_Success, "You have successfully set ImageGlass as default photo viewer."), //v9.0
+        new(LangId.Menu_MnuSetDefaultPhotoViewer_Success, "ImageGlass is now listed in Open with. To make it the default, choose it in Windows Default apps."), // GlassHouse: Windows only lets you pick defaults there
         new(LangId.Menu_MnuSetDefaultPhotoViewer_Error, "Could not set ImageGlass as default photo viewer."), //v9.0
 
         new(LangId.Menu_MnuRemoveDefaultPhotoViewer, "Remove default photo viewer"), //v9.0

@@ -194,7 +194,7 @@ public static class Win32DefaultAppApi
 
 
     /// <summary>
-    /// Rewrites the registered paths only, never the extension defaults or the user's UserChoice.
+    /// Rewrites the registered paths only, never the user's UserChoice; drops a classic default older versions wrote.
     /// </summary>
     private static void RefreshRegisteredPaths(RegistryKey root, string[] extensions)
     {
@@ -210,6 +210,7 @@ public static class Win32DefaultAppApi
         {
             var extNoDot = ext.TrimStart('.').ToUpperInvariant();
             RegisterProgId(classesKey, GetProgId(extNoDot), extNoDot);
+            AssociateExtensionDefault(classesKey, ext, GetProgId(extNoDot));
         }
     }
 
@@ -328,7 +329,9 @@ public static class Win32DefaultAppApi
                 // HKCU\Software\Classes\...
                 RegisterProgId(classesKey, progId, extNoDot);
                 AssociateExtensionDefault(classesKey, ext, progId);
-                ClearUserChoice(ext);
+
+                // GlassHouse: the user's chosen default (UserChoice) is kept; clearing it left the type on
+                // "Pick an app", since Windows ignores an app-written default. Defaults are picked in Windows Settings
             }
         }
 
@@ -397,6 +400,9 @@ public static class Win32DefaultAppApi
             using var key = root.OpenSubKey($@"Software\Classes\{progId}");
             var written = key?.GetValue("FriendlyTypeName", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
             if (written != GetWindowsFileType(extNoDot).FriendlyName) return false;
+
+            using var extKey = root.OpenSubKey($@"Software\Classes\{ext}");
+            if (extKey?.GetValue("") as string == progId) return false;
             if (!isElevated) continue;
 
             using var machineKey = Registry.LocalMachine.OpenSubKey($@"Software\Classes\{progId}");
@@ -492,15 +498,17 @@ public static class Win32DefaultAppApi
 
 
     /// <summary>
-    /// Sets our ProgId as the extension's classic default and adds it to <c>OpenWithProgids</c>.
+    /// Adds our ProgId to the extension's <c>OpenWithProgids</c>, and removes it as the classic default.
+    /// GlassHouse: Windows ignores an app-written default (the type stays on "Pick an app"), and Explorer then shows
+    /// that raw value as the type name, e.g. "GlassHouse.AssocFile.JPG". Windows Settings picks the default instead.
     /// </summary>
     private static void AssociateExtensionDefault(RegistryKey? classesKey, string ext, string progId)
     {
         if (classesKey is null) return;
 
-        // <root>\Software\Classes\.<EXT>  (default + OpenWithProgids)
+        // <root>\Software\Classes\.<EXT>  (OpenWithProgids only)
         using var extKey = classesKey.CreateSubKey(ext, writable: true);
-        extKey.SetValue("", progId);
+        if (extKey.GetValue("") as string == progId) extKey.DeleteValue("", throwOnMissingValue: false);
 
         using var openWith = extKey.CreateSubKey("OpenWithProgids", writable: true);
         openWith.SetValue(progId, string.Empty);
