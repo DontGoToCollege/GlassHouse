@@ -107,6 +107,7 @@ public partial class SettingsWindowView : PhControl
 
         if (PART_License is not null)
         {
+            PART_License.IsVisible = false; // GlassHouse: no licences
             PART_License.Text = "✦ " + Core.Lang[Core.IsProEnabled
                 ? LangId.Menu_MnuManageLicense
                 : LangId.Menu_MnuUpgradeLicense];

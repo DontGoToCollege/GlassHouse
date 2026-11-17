@@ -192,7 +192,7 @@ public sealed class ToolProcessManager : PhDisposable
 
         // ~/.cache stays visible through --filesystem=host, unlike /tmp.
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".cache", "ImageGlass", "tools");
+            ".cache", "GlassHouse", "tools");
         Directory.CreateDirectory(dir);
         return Path.Combine(dir, id);
     }

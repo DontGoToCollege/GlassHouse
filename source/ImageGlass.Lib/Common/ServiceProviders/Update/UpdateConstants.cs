@@ -30,7 +30,7 @@ internal static class UpdateConstants
     /// <summary>
     /// Fallback URL when update check fails.
     /// </summary>
-    public const string FallbackReleasesUrl = "https://github.com/d2phap/ImageGlass/releases";
+    public const string FallbackReleasesUrl = "https://github.com/DontGoToCollege/GlassHouse/releases";
 
     /// <summary>
     /// Microsoft Store product page. The Store owns updating for that package, so its build sends

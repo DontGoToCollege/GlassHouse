@@ -262,6 +262,9 @@ public class Lang
         }
 
 
+        // GlassHouse: every language pack names the app ImageGlass; show GlassHouse instead
+        value = value.Replace("ImageGlass", BHelper.AppName, StringComparison.Ordinal);
+
         // 3. if value has arguments, return the formatted string
         if (args.Length > 0)
         {

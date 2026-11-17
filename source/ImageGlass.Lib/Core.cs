@@ -47,7 +47,7 @@ namespace ImageGlass.Common;
 
 public static class Core
 {
-    public static readonly AppInstance AppInstance = new AppInstance("IG_APP"); // MacOS has length limit
+    public static readonly AppInstance AppInstance = new AppInstance("GH_APP") /* GlassHouse: never hand files to a running ImageGlass */; // MacOS has length limit
 
     public static event EventHandler? LanguageChanged;
     public static event EventHandler<ThemePackChangedEventArgs>? ThemeChanged;
@@ -254,7 +254,8 @@ public static class Core
     /// <summary>
     /// Whether Pro features are unlocked (a valid license is active).
     /// </summary>
-    public static bool IsProEnabled => AppLicense is not null;
+    // GlassHouse: every Pro feature is on; there is no licence to buy (GPLv3 fork for personal use)
+    public static bool IsProEnabled => true;
 
 
     /// <summary>

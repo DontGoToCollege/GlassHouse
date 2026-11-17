@@ -31,7 +31,7 @@ public static class Const
     public const string CONFIG_CMD_PREFIX = "-p:";
     public const string DATETIME_FORMAT = "yyyy/MM/dd HH:mm:ss";
     public const string DATE_FORMAT = "yyyy/MM/dd";
-    public const string APP_PROTOCOL = "imageglass";
+    public const string APP_PROTOCOL = "glasshouse";
 
     /// <summary>
     /// Official website host. Campaign params are appended to this host and its subdomains only.

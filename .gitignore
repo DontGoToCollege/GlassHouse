@@ -435,3 +435,11 @@ FodyWeavers.xsd
 *.msm
 *.msp
 .DS_Store
+
+# GlassHouse: local SDK and tools, builds, and the live app folder (releases hold the programs)
+/.dotnet/
+/.tools/
+/.build/
+/.test/
+/Versions/
+/GlassHouse/

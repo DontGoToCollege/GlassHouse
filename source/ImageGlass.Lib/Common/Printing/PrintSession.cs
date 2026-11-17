@@ -554,7 +554,7 @@ public sealed class PrintSession : PhDisposable, IPrintImageSource
     private string GetPhotoName()
     {
         var path = _state.Photo.FilePath;
-        return string.IsNullOrEmpty(path) ? "ImageGlass" : Path.GetFileName(path);
+        return string.IsNullOrEmpty(path) ? "GlassHouse" : Path.GetFileName(path);
     }
 
 

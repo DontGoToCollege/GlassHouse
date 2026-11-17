@@ -1,3 +1,5 @@
+> **GlassHouse:** this is the owner's fork of ImageGlass. Read `../CLAUDE.md` first for its build, versioning and the list of GlassHouse changes.
+
 # ImageGlass v10
 
 ## Project Overview

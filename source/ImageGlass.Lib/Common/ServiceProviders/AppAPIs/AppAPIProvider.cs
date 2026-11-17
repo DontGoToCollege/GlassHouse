@@ -3337,11 +3337,20 @@ public partial class AppAPIProvider
     }
 
 
+    // GlassHouse: static (not const) so the upstream update code below still compiles without unreachable-code warnings
+    private static readonly bool GlassHouseUsesUpstreamUpdates = false;
+
+
     /// <summary>
     /// Checks for new update asynchronously with option to shows UI feedback.
     /// </summary>
     public static async Task IG_CheckForUpdateAsync(bool showUI = true)
     {
+        // GlassHouse: ImageGlass's update server (and the usage stats sent with it) is never contacted;
+        // a manual check opens GlassHouse's releases page, the silent startup check does nothing
+        if (showUI) await BHelper.OpenUrlAsync(App.MainWindow, Update.UpdateConstants.FallbackReleasesUrl);
+        if (!GlassHouseUsesUpstreamUpdates) return;
+
         if (showUI) _hasManualUpdateCheck.SetTrue();
 
         // silent mode: skip if disabled or checked recently

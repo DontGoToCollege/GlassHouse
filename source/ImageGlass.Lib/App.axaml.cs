@@ -269,8 +269,8 @@ public partial class App : Application
             }
 
             // show only the licensing item matching the current license state
-            if (langId == LangId.Menu_MnuUpgradeLicense) item.IsVisible = !Core.IsProEnabled;
-            else if (langId == LangId.Menu_MnuManageLicense) item.IsVisible = Core.IsProEnabled;
+            // GlassHouse: no licences, so neither licensing item is shown
+            if (langId is LangId.Menu_MnuUpgradeLicense or LangId.Menu_MnuManageLicense) item.IsVisible = false;
         }
     }
 

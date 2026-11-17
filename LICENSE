@@ -1,3 +1,16 @@
+GlassHouse
+Copyright (c) 2026 DontGoToCollege (the GlassHouse changes)
+Source: https://github.com/DontGoToCollege/GlassHouse
+
+GlassHouse is a modified version of ImageGlass, changed from 2026-11-17 onward; the
+git history lists every change. It is released under the same GNU General Public
+License, Version 3, as the ImageGlass source below. GlassHouse does not use the
+ImageGlass name or logo as its own (see the trademark note below).
+
+================================================================================
+Original ImageGlass notice
+================================================================================
+
 ImageGlass
 Copyright (c) 2010 - 2026 Duong Dieu Phap
 Website: https://imageglass.org

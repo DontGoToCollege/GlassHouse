@@ -30,7 +30,7 @@ namespace ImageGlass.Common.Printing;
 /// </summary>
 public sealed record PdfWriteOptions
 {
-    public string Title { get; init; } = "ImageGlass";
+    public string Title { get; init; } = "GlassHouse";
 
     /// <summary>
     /// Gets the resolution images are embedded at, at most, in pixels per inch of paper.
@@ -66,8 +66,8 @@ public static class PdfPrintWriter
         var metadata = new SKDocumentPdfMetadata
         {
             Title = options.Title,
-            Creator = "ImageGlass",
-            Producer = "ImageGlass",
+            Creator = "GlassHouse",
+            Producer = "GlassHouse",
             Creation = now,
             Modified = now,
             RasterDpi = options.Dpi,

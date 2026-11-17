@@ -1,5 +1,11 @@
 <Project>
   <PropertyGroup>
+    <!-- GlassHouse's own version: raise it for every GlassHouse release (build.ps1 reads it).
+         IgVersion below stays the ImageGlass version GlassHouse is based on. -->
+    <GhVersion>1.0.0</GhVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <!-- Central app version: change ONLY here to update all platform projects -->
     <IgVersion>10.1.0.1021</IgVersion>
     <IgReleaseType>beta</IgReleaseType>

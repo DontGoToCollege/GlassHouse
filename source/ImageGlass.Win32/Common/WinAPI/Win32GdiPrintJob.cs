@@ -75,7 +75,7 @@ internal static unsafe class Win32GdiPrintJob
         })
         {
             IsBackground = true,
-            Name = "ImageGlass print job",
+            Name = "GlassHouse print job",
         };
 
         // a driver may open a window of its own while printing, which needs a single-threaded apartment

@@ -104,7 +104,7 @@ public static class StartupTrace
             // header + process-start estimate on the first flush only
             if (_flushedCount == 0)
             {
-                lines.Add($"===== ImageGlass startup trace @ PID {Environment.ProcessId} =====");
+                lines.Add($"===== GlassHouse startup trace @ PID {Environment.ProcessId} =====");
                 try
                 {
                     var startToNow = DateTime.Now - Process.GetCurrentProcess().StartTime;

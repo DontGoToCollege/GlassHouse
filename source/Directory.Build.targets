@@ -9,7 +9,12 @@
     <IgFullVersion Condition="'$(IgReleaseType)' != ''">$(IgVersion)-$(IgReleaseType)-$(IgPlatformId)-$(Platform)</IgFullVersion>
     <IgFullVersion Condition="'$(IgReleaseType)' == ''">$(IgVersion)-$(IgPlatformId)-$(Platform)</IgFullVersion>
     <Version>$(IgFullVersion)</Version>
-    <FileVersion>$(IgVersion)</FileVersion>
+    <!-- GlassHouse: Explorer and About show GlassHouse's version; ImageGlass's stays in the product version -->
+    <FileVersion>$(GhVersion)</FileVersion>
+    <AssemblyVersion>$(GhVersion)</AssemblyVersion>
+    <InformationalVersion>$(GhVersion) (based on ImageGlass $(IgFullVersion))</InformationalVersion>
+    <Product>GlassHouse</Product>
+    <Company>DontGoToCollege</Company>
   </PropertyGroup>
 
 

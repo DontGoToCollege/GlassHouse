@@ -97,7 +97,8 @@ public partial class AboutWindow : DialogWindow
         DefaultFocus = DialogFocus.Button1;
         ShowInTaskbar = true;
 
-        PART_LblCopyright.Text = $"Copyright © 2010-{DateTime.UtcNow.Year} Dương Diệu Pháp";
+        // GlassHouse: GPLv3 keeps the original copyright; GlassHouse's changes are its own
+        PART_LblCopyright.Text = $"GlassHouse, based on ImageGlass\nCopyright © 2010-{DateTime.UtcNow.Year} Dương Diệu Pháp\nChanges copyright © 2026 DontGoToCollege · GPLv3";
         PART_LblCreditContent.Text = _creditContent;
 
         SetupEditionChip();
@@ -107,10 +108,11 @@ public partial class AboutWindow : DialogWindow
         PhButton[] linkButtons = [PART_BtnWebsite, PART_BtnGitHub, PART_BtnEula, PART_BtnPrivacy];
         foreach (var btn in linkButtons) btn.Padding = new Thickness(6, 2);
 
-        PART_BtnWebsite.Click += (_, _) => OpenUrl("https://imageglass.org");
+        // GlassHouse: its own page and licence; "ImageGlass" credits the original project
+        PART_BtnWebsite.Click += (_, _) => OpenUrl("https://github.com/DontGoToCollege/GlassHouse");
         PART_BtnGitHub.Click += (_, _) => OpenUrl("https://github.com/d2phap/ImageGlass");
-        PART_BtnEula.Click += (_, _) => OpenUrl("https://imageglass.org/license");
-        PART_BtnPrivacy.Click += (_, _) => OpenUrl("https://imageglass.org/privacy");
+        PART_BtnEula.Click += (_, _) => OpenUrl("https://github.com/DontGoToCollege/GlassHouse/blob/main/LICENSE");
+        PART_BtnPrivacy.IsVisible = false; // GlassHouse sends nothing anywhere
         PART_BtnDonate.Click += (_, _) => OpenUrl("https://imageglass.org/donate");
 
         PART_BtnCheckForUpdate.Click += async (_, _) =>
@@ -152,10 +154,10 @@ public partial class AboutWindow : DialogWindow
         PART_LblSlogan.Text = Core.Lang[LangId._Slogan];
         PART_LblCredits.Text = Core.Lang[LangId._Credits];
         PART_BtnWebsite.Text = Core.Lang[LangId._Homepage];
-        PART_BtnGitHub.Text = "GitHub";
+        PART_BtnGitHub.Text = "ImageGlass";
         PART_BtnEula.Text = Core.Lang[LangId._License];
         PART_BtnPrivacy.Text = Core.Lang[LangId._Privacy];
-        PART_BtnDonate.Text = "❤️ " + Core.Lang[LangId._Donate];
+        PART_BtnDonate.Text = "❤️ " + Core.Lang[LangId._Donate] + " (ImageGlass)";
         PART_BtnCheckForUpdate.Text = Core.Lang[LangId._CheckForUpdate];
 
         // the edition name is not translatable, but the tooltip says what clicking it does
@@ -178,7 +180,7 @@ public partial class AboutWindow : DialogWindow
         var dotnetVersion = RuntimeInformation.FrameworkDescription;
 
         PART_LblVersion.Text = $"""
-            {Core.Lang[LangId._AboutVersion]} {Core.BuildInfo.FullVersion}
+            {Core.Lang[LangId._AboutVersion]} {System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3)} (ImageGlass {Core.BuildInfo.FullVersion})
             {magickVersion}
             {dotnetVersion}
             """;
@@ -216,6 +218,7 @@ public partial class AboutWindow : DialogWindow
     /// </summary>
     private void SetupEditionChip()
     {
+        PART_BtnEdition.IsVisible = false; // GlassHouse: one edition, no licences
         var isPro = Core.IsProEnabled;
 
         // "Classic" and "Pro" are edition names, not translatable copy
