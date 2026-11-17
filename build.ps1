@@ -34,6 +34,8 @@ if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
 Get-ChildItem $app -Filter *.pdb | Remove-Item -Force
 Copy-Item "$root\source\__assets\__app\*" $app -Recurse -Force
+# ImageGlass's file-type icon pack: files keep Windows' own icons, and in portable mode this folder counts as the user's own icons
+Remove-Item "$app\_ext_icons" -Recurse -Force
 New-Item -ItemType File "$app\.igportable" -Force | Out-Null
 
 & "$root\tools\smoke.ps1" -App $app

@@ -60,6 +60,8 @@ public static class Win32DefaultAppApi
                 UnregisterAppAndExtensions(root, extensions);
             }
 
+            MirrorProgIdsForAdminShell(scope, extensions, enable);
+
             NotifyShellAssocChanged();
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
@@ -179,10 +181,12 @@ public static class Win32DefaultAppApi
             {
                 // only our own live registration is ours to rewrite for a dead icon
                 var isOurCommand = registeredExe.Equals(LaunchCommandExe, StringComparison.OrdinalIgnoreCase);
-                if (!isOurCommand || IsRegisteredIconAlive(root, extensions)) return;
+                if (!isOurCommand) return;
+                if (IsRegisteredIconAlive(root, extensions) && IsRegistrationCurrent(root, extensions)) return;
             }
 
             RefreshRegisteredPaths(root, extensions);
+            MirrorProgIdsForAdminShell(DefaultAppScope.CurrentUser, extensions, true);
             NotifyShellAssocChanged();
         }
         catch { }
@@ -252,7 +256,12 @@ public static class Win32DefaultAppApi
             // no DefaultIcon falls back to the app icon, never to blank, so it is not a defect
             if (iconKey?.GetValue("") is not string iconPath || iconPath.Length == 0) continue;
 
-            return File.Exists(iconPath);
+            // GlassHouse: Windows' own icons are "<file>,<index>" with environment variables
+            var iconFile = Environment.ExpandEnvironmentVariables(iconPath).Trim('"');
+            var comma = iconFile.LastIndexOf(',');
+            if (comma > 0 && !File.Exists(iconFile)) iconFile = iconFile[..comma].Trim('"');
+
+            return File.Exists(iconFile);
         }
 
         return true;
@@ -333,10 +342,104 @@ public static class Win32DefaultAppApi
     private static string GetProgId(string extNoDot) => $"{BHelper.AppName}.AssocFile.{extNoDot}";
 
 
+    // GlassHouse: the picture icon Windows gives JPEG files, for formats Windows has no icon of its own for
+    private const string WINDOWS_PICTURE_ICON = @"%SystemRoot%\System32\imageres.dll,-72";
+
+
     /// <summary>
-    /// Builds the file type name Explorer shows for an extension, e.g. <c>ImageGlass JPG File</c>.
+    /// Gets the type name and icon Windows itself gives an extension (e.g. <c>JPEG Image</c>), so Explorer looks the
+    /// same as before GlassHouse; an unknown type gets Windows' own wording, e.g. <c>WEBP File</c>.
     /// </summary>
-    private static string GetFriendlyTypeName(string extNoDot) => $"{BHelper.AppName} {extNoDot} File";
+    private static (string Name, string FriendlyName, string Icon) GetWindowsFileType(string extNoDot)
+    {
+        // HKLM holds Windows' own registration; GlassHouse's per-user keys never shadow it there
+        using var classesKey = Registry.LocalMachine.OpenSubKey(@"Software\Classes");
+        using var extKey = classesKey?.OpenSubKey("." + extNoDot.ToLowerInvariant());
+
+        var candidates = new List<string>();
+        if (extKey?.GetValue("") is string defaultProgId) candidates.Add(defaultProgId);
+        using (var openWith = extKey?.OpenSubKey("OpenWithProgids"))
+        {
+            if (openWith is not null) candidates.AddRange(openWith.GetValueNames());
+        }
+
+        foreach (var progId in candidates)
+        {
+            // a per-machine install points the extension at our own ProgId: skip it
+            if (string.IsNullOrEmpty(progId) || progId.StartsWith(BHelper.AppName + ".", StringComparison.OrdinalIgnoreCase)) continue;
+
+            using var progIdKey = classesKey?.OpenSubKey(progId);
+            if (progIdKey is null) continue;
+
+            var name = progIdKey.GetValue("") as string;
+            var friendlyName = progIdKey.GetValue("FriendlyTypeName", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+            if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(friendlyName)) continue;
+
+            using var iconKey = progIdKey.OpenSubKey("DefaultIcon");
+            var icon = iconKey?.GetValue("", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+
+            name = string.IsNullOrWhiteSpace(name) ? $"{extNoDot} File" : name;
+            return (name, string.IsNullOrWhiteSpace(friendlyName) ? name : friendlyName,
+                string.IsNullOrWhiteSpace(icon) ? WINDOWS_PICTURE_ICON : icon);
+        }
+
+        return ($"{extNoDot} File", $"{extNoDot} File", WINDOWS_PICTURE_ICON);
+    }
+
+
+    /// <summary>
+    /// Whether the registration uses Windows' type names and, under an admin-token shell, is mirrored to HKLM.
+    /// </summary>
+    private static bool IsRegistrationCurrent(RegistryKey root, string[] extensions)
+    {
+        var extNoDot = extensions[0].TrimStart('.').ToUpperInvariant();
+        var progId = GetProgId(extNoDot);
+
+        // GlassHouse 1.0.1 and older wrote "GlassHouse <EXT> File" and nothing an admin-token shell could read
+        using var key = root.OpenSubKey($@"Software\Classes\{progId}");
+        var written = key?.GetValue("FriendlyTypeName", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+        if (written != GetWindowsFileType(extNoDot).FriendlyName) return false;
+        if (!IsProcessElevated()) return true;
+
+        using var machineKey = Registry.LocalMachine.OpenSubKey($@"Software\Classes\{progId}");
+        return machineKey is not null;
+    }
+
+
+    /// <summary>
+    /// With UAC off the shell runs with an admin token and reads only HKLM classes, so a per-user ProgId shows as its
+    /// raw name (<c>GlassHouse.AssocFile.WEBP</c>). Copies the ProgIds there too; the per-user defaults stay per-user.
+    /// </summary>
+    private static void MirrorProgIdsForAdminShell(DefaultAppScope scope, string[] extensions, bool enable)
+    {
+        if (scope != DefaultAppScope.CurrentUser || !IsProcessElevated()) return;
+
+        try
+        {
+            using var classesKey = Registry.LocalMachine.OpenSubKey(@"Software\Classes", writable: true);
+            if (classesKey is null) return;
+
+            foreach (var ext in extensions)
+            {
+                var extNoDot = ext.TrimStart('.').ToUpperInvariant();
+                var progId = GetProgId(extNoDot);
+
+                if (enable)
+                {
+                    RegisterProgId(classesKey, progId, extNoDot);
+                    using var openWith = classesKey.CreateSubKey($@"{ext}\OpenWithProgids", writable: true);
+                    openWith.SetValue(progId, string.Empty);
+                }
+                else
+                {
+                    classesKey.DeleteSubKeyTree(progId, throwOnMissingSubKey: false);
+                    using var openWith = classesKey.OpenSubKey($@"{ext}\OpenWithProgids", writable: true);
+                    openWith?.DeleteValue(progId, throwOnMissingValue: false);
+                }
+            }
+        }
+        catch { }
+    }
 
 
     /// <summary>
@@ -349,24 +452,17 @@ public static class Win32DefaultAppApi
         // <root>\Software\Classes\ImageGlass.AssocFile.<EXT>
         using var progIdKey = classesKey.CreateSubKey(progId, writable: true);
 
-        // Explorer's Type column: per-format, since a bare app name labels every format the same
-        var friendlyTypeName = GetFriendlyTypeName(extNoDot);
-        progIdKey.SetValue("", friendlyTypeName);
+        // GlassHouse: Explorer's Type column and icon stay Windows' own (e.g. "JPEG Image"), never GlassHouse's
+        var windowsType = GetWindowsFileType(extNoDot);
+        progIdKey.SetValue("", windowsType.Name);
 
         // shell verbs resolve ASSOCSTR_FRIENDLYDOCNAME from here first, the default value second
-        progIdKey.SetValue("FriendlyTypeName", friendlyTypeName);
+        progIdKey.SetValue("FriendlyTypeName", windowsType.FriendlyName, RegistryValueKind.ExpandString);
 
-        // 1. HKCU\Software\Classes\ImageGlass.AssocFile.<EXT>\DefaultIcon
-        var iconPath = ResolveExtIconPath(extNoDot);
-        if (!string.IsNullOrEmpty(iconPath))
+        // 1. HKCU\Software\Classes\ImageGlass.AssocFile.<EXT>\DefaultIcon: an icon the user added wins
+        using (var iconKey = progIdKey.CreateSubKey("DefaultIcon", writable: true))
         {
-            using var iconKey = progIdKey.CreateSubKey("DefaultIcon", writable: true);
-            iconKey.SetValue("", iconPath);
-        }
-        else
-        {
-            // no icon on disk any more: drop the one a previous registration left behind
-            progIdKey.DeleteSubKeyTree("DefaultIcon", throwOnMissingSubKey: false);
+            iconKey.SetValue("", ResolveExtIconPath(extNoDot) ?? windowsType.Icon, RegistryValueKind.ExpandString);
         }
 
 
@@ -383,17 +479,14 @@ public static class Win32DefaultAppApi
 
 
     /// <summary>
-    /// Resolves an extension's icon: a user icon in the config dir wins, else the bundled one.
+    /// Resolves an icon the user added for an extension in the config dir, or <c>null</c>.
+    /// GlassHouse: the bundled ImageGlass icon pack is not used, so files keep Windows' own icons.
     /// </summary>
     private static string? ResolveExtIconPath(string extNoDot)
     {
         // MSIX may redirect the config dir, so resolve the real physical path
         var userIcon = BHelper.GetRealPlatformConfigDir(Dir.ExtIcons, $"{extNoDot}.ico");
-        if (File.Exists(userIcon)) return userIcon;
-
-        // bundled fallback; a packaged install dir is versioned, so an update needs re-registering
-        var bundledIcon = BHelper.BaseDir(Dir.ExtIcons, $"{extNoDot}.ico");
-        return File.Exists(bundledIcon) ? bundledIcon : null;
+        return File.Exists(userIcon) ? userIcon : null;
     }
 
 
