@@ -356,31 +356,25 @@ public static class Win32DefaultAppApi
         using var classesKey = Registry.LocalMachine.OpenSubKey(@"Software\Classes");
         using var extKey = classesKey?.OpenSubKey("." + extNoDot.ToLowerInvariant());
 
-        var candidates = new List<string>();
-        if (extKey?.GetValue("") is string defaultProgId) candidates.Add(defaultProgId);
-        using (var openWith = extKey?.OpenSubKey("OpenWithProgids"))
+        // only the extension's own ProgId: OpenWithProgids lists every app that can open it (a browser's "HTML Document")
+        // and a per-machine install points it at our own ProgId, which says nothing about the type
+        var progId = extKey?.GetValue("") as string;
+        if (!string.IsNullOrEmpty(progId) && !progId.StartsWith(BHelper.AppName + ".", StringComparison.OrdinalIgnoreCase))
         {
-            if (openWith is not null) candidates.AddRange(openWith.GetValueNames());
-        }
-
-        foreach (var progId in candidates)
-        {
-            // a per-machine install points the extension at our own ProgId: skip it
-            if (string.IsNullOrEmpty(progId) || progId.StartsWith(BHelper.AppName + ".", StringComparison.OrdinalIgnoreCase)) continue;
-
             using var progIdKey = classesKey?.OpenSubKey(progId);
-            if (progIdKey is null) continue;
 
-            var name = progIdKey.GetValue("") as string;
-            var friendlyName = progIdKey.GetValue("FriendlyTypeName", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
-            if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(friendlyName)) continue;
+            var name = progIdKey?.GetValue("") as string;
+            var friendlyName = progIdKey?.GetValue("FriendlyTypeName", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
 
-            using var iconKey = progIdKey.OpenSubKey("DefaultIcon");
-            var icon = iconKey?.GetValue("", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+            if (!string.IsNullOrWhiteSpace(name) || !string.IsNullOrWhiteSpace(friendlyName))
+            {
+                using var iconKey = progIdKey!.OpenSubKey("DefaultIcon");
+                var icon = iconKey?.GetValue("", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
 
-            name = string.IsNullOrWhiteSpace(name) ? $"{extNoDot} File" : name;
-            return (name, string.IsNullOrWhiteSpace(friendlyName) ? name : friendlyName,
-                string.IsNullOrWhiteSpace(icon) ? WINDOWS_PICTURE_ICON : icon);
+                name = string.IsNullOrWhiteSpace(name) ? $"{extNoDot} File" : name;
+                return (name, string.IsNullOrWhiteSpace(friendlyName) ? name : friendlyName,
+                    string.IsNullOrWhiteSpace(icon) ? WINDOWS_PICTURE_ICON : icon);
+            }
         }
 
         return ($"{extNoDot} File", $"{extNoDot} File", WINDOWS_PICTURE_ICON);
@@ -392,17 +386,24 @@ public static class Win32DefaultAppApi
     /// </summary>
     private static bool IsRegistrationCurrent(RegistryKey root, string[] extensions)
     {
-        var extNoDot = extensions[0].TrimStart('.').ToUpperInvariant();
-        var progId = GetProgId(extNoDot);
+        var isElevated = IsProcessElevated();
 
-        // GlassHouse 1.0.1 and older wrote "GlassHouse <EXT> File" and nothing an admin-token shell could read
-        using var key = root.OpenSubKey($@"Software\Classes\{progId}");
-        var written = key?.GetValue("FriendlyTypeName", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
-        if (written != GetWindowsFileType(extNoDot).FriendlyName) return false;
-        if (!IsProcessElevated()) return true;
+        foreach (var ext in extensions)
+        {
+            var extNoDot = ext.TrimStart('.').ToUpperInvariant();
+            var progId = GetProgId(extNoDot);
 
-        using var machineKey = Registry.LocalMachine.OpenSubKey($@"Software\Classes\{progId}");
-        return machineKey is not null;
+            // GlassHouse 1.0.1 and older wrote "GlassHouse <EXT> File" and nothing an admin-token shell could read
+            using var key = root.OpenSubKey($@"Software\Classes\{progId}");
+            var written = key?.GetValue("FriendlyTypeName", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+            if (written != GetWindowsFileType(extNoDot).FriendlyName) return false;
+            if (!isElevated) continue;
+
+            using var machineKey = Registry.LocalMachine.OpenSubKey($@"Software\Classes\{progId}");
+            if (machineKey is null) return false;
+        }
+
+        return true;
     }
 
 
