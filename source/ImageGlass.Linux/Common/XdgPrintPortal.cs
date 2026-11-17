@@ -1,6 +1,6 @@
 /*
 ImageGlass - A Fast, Seamless Photo Viewer
-Copyright (C) 2010 - 2026 DUONG DIEU PHAP
+Copyright (C) 2010 - 2027 DUONG DIEU PHAP
 Project homepage: https://imageglass.org
 
 This program is free software: you can redistribute it and/or modify
@@ -60,7 +60,7 @@ internal static class XdgPrintPortal
             notification =>
             {
                 if (notification.HasValue) response.TrySetResult(notification.Value);
-                else if (notification.Exception is { } ex) response.TrySetException(ex);
+                else if (notification.CompletionReason is { } ex) response.TrySetException(ex);
             },
             ObserverFlags.None, false, null).ConfigureAwait(false);
 

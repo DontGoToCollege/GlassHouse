@@ -1,6 +1,6 @@
 ﻿/*
 ImageGlass - A Fast, Seamless Photo Viewer
-Copyright (C) 2010 - 2026 DUONG DIEU PHAP
+Copyright (C) 2010 - 2027 DUONG DIEU PHAP
 Project homepage: https://imageglass.org
 
 This program is free software: you can redistribute it and/or modify
@@ -1305,8 +1305,6 @@ public class Lang
         new(LangId.Tool_Crop_SelectionAspectRatio_Original, "Original"), //v9.0
 
         new(LangId.Tool_Crop_BtnReset, "Reset"), //v9.0
-        new(LangId.Tool_Crop_BtnSave, "Save"), //v9.0
-        new(LangId.Tool_Crop_BtnSaveAs, "Save as…"), //v9.0
         new(LangId.Tool_Crop_BtnCrop, "Crop"), //v9.0
         new(LangId.Tool_Crop_BtnCopy, "Copy"), //v9.0
 

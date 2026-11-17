@@ -1,6 +1,6 @@
 /*
 ImageGlass - A Fast, Seamless Photo Viewer
-Copyright (C) 2010 - 2026 DUONG DIEU PHAP
+Copyright (C) 2010 - 2027 DUONG DIEU PHAP
 Project homepage: https://imageglass.org
 
 This program is free software: you can redistribute it and/or modify
@@ -175,6 +175,16 @@ public partial class PluginInfoWindowView : PhControl
         PART_ConsentTitle.Text = Core.Lang[LangId.Settings_Plugins_TrustTitle];
         PART_ConsentMessage.Text = msg;
         PART_ConsentRow.IsVisible = true;
+    }
+
+
+    /// <summary>
+    /// Hides the consent banner and brings the formats tab forward, once the plugin is enabled.
+    /// </summary>
+    public void ShowFormatsAfterEnable()
+    {
+        PART_ConsentRow.IsVisible = false;
+        if (PART_TabFormats.IsVisible) PART_Tabs.SelectedItem = PART_TabFormats;
     }
 
 

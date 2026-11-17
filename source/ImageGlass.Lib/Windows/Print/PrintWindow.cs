@@ -1,6 +1,6 @@
 /*
 ImageGlass - A Fast, Seamless Photo Viewer
-Copyright (C) 2010 - 2026 DUONG DIEU PHAP
+Copyright (C) 2010 - 2027 DUONG DIEU PHAP
 Project homepage: https://imageglass.org
 
 This program is free software: you can redistribute it and/or modify
@@ -56,7 +56,7 @@ public sealed class PrintWindow : DialogWindow
     public string? CompletedMessage { get; private set; }
 
 
-    public PrintWindow(PrintSession session)
+    public PrintWindow(PrintSession session, PrintRegion region = PrintRegion.WholeImage)
     {
         IsButton1Visible = true;
         IsButton2Visible = true;
@@ -80,7 +80,7 @@ public sealed class PrintWindow : DialogWindow
             new(MIN_RESTORE_WIDTH, MIN_RESTORE_HEIGHT));
         if (Core.Config.EnablePrintWindowMaximized) WindowState = WindowState.Maximized;
 
-        _view = new PrintWindowView(session);
+        _view = new PrintWindowView(session, region);
         _view.StateChanged += View_StateChanged;
         DialogContent = _view;
 

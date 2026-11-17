@@ -1,6 +1,6 @@
 ﻿/*
 ImageGlass - A Fast, Seamless Photo Viewer
-Copyright (C) 2010 - 2026 DUONG DIEU PHAP
+Copyright (C) 2010 - 2027 DUONG DIEU PHAP
 Project homepage: https://imageglass.org
 
 This program is free software: you can redistribute it and/or modify
@@ -658,9 +658,20 @@ public partial class AppAPIProvider
 
 
     /// <summary>
-    /// Opens the Print window for the photo as it is shown, every frame and edit included.
+    /// Opens the Print window to print the photo.
     /// </summary>
-    public static async Task IG_PrintAsync()
+    public static async Task IG_PrintAsync(string? regionStr)
+    {
+        var isRegion = Enum.TryParse<PrintRegion>(regionStr, true, out var region);
+
+        await IG_PrintAsync(isRegion ? region : null);
+    }
+
+
+    /// <summary>
+    /// Opens the Print window to print the photo.
+    /// </summary>
+    public static async Task IG_PrintAsync(PrintRegion? region = null)
     {
         // the shown image, every edit applied, rather than the file on disk
         var state = Viewer.CaptureImageState();
@@ -675,7 +686,7 @@ public partial class AppAPIProvider
         }
 
         using var session = new PrintSession(state);
-        var window = new PrintWindow(session);
+        var window = new PrintWindow(session, region ?? PrintRegion.WholeImage);
 
         // a running slideshow would move on to the next photo behind the window
         var slideshow = Core.Slideshow;
@@ -761,7 +772,6 @@ public partial class AppAPIProvider
     /// </summary>
     public static async Task IG_RenameAsync()
     {
-        var photo = Core.Photos.Current;
         var oldFilePath = Core.Photos.CurrentFilePath;
         if (!File.Exists(oldFilePath)) return;
 
@@ -807,14 +817,11 @@ public partial class AppAPIProvider
                 File.Move(oldFilePath, newFilePath);
             }
 
-            // the watcher reports the rename ~50 ms later, and the next frame decodes by path
-            (photo?.Bitmap as AnimatorImpl)?.UpdateFilePath(newFilePath);
-
-
-            // manually update the change if FileWatcher is not enabled
-            if (!Core.Config.EnableFileWatcher)
+            // the watcher is Pro-only and lags ~50 ms, so update the list here; its later event finds nothing to do
+            var photoIndex = Core.Photos.IndexOf(oldFilePath);
+            if (photoIndex >= 0)
             {
-                Core.Photos.SetFilePath(Core.Photos.CurrentIndex, newFilePath);
+                Core.Photos.SetFilePath(photoIndex, newFilePath);
             }
         }
         catch (Exception ex)
@@ -3700,7 +3707,7 @@ public partial class AppAPIProvider
     /// </summary>
     public static void IG_OpenContextMenu()
     {
-        Viewer.ContextMenu?.Open();
+        App.MainWindow.PART_MainView.OpenViewerContextMenu();
     }
 
 
