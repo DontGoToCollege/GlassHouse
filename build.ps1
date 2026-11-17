@@ -30,7 +30,8 @@ $env:DOTNET_ROOT = "$root\.dotnet"; $env:DOTNET_MULTILEVEL_LOOKUP = "0"; $env:DO
 $stage = if ($Test) { "$root\.test" } else { "$root\.build" }
 $app = "$stage\GlassHouse"
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
-& $dotnet publish "$root\source\ImageGlass.Win32\ImageGlass.Win32.csproj" -c Release -p:Platform=x64 -o $app
+# 'Continue' here: PowerShell 5.1 turns dotnet's harmless notices on stderr into a crash under 'Stop'; the exit code decides
+& { $ErrorActionPreference = "Continue"; & $dotnet publish "$root\source\ImageGlass.Win32\ImageGlass.Win32.csproj" -c Release -p:Platform=x64 -o $app }
 if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
 Get-ChildItem $app -Filter *.pdb | Remove-Item -Force
 Copy-Item "$root\source\__assets\__app\*" $app -Recurse -Force

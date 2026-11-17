@@ -212,6 +212,8 @@ public static class Win32DefaultAppApi
             RegisterProgId(classesKey, GetProgId(extNoDot), extNoDot);
             AssociateExtensionDefault(classesKey, ext, GetProgId(extNoDot));
         }
+
+        RegisterApplicationKey(classesKey, extensions);
     }
 
 
@@ -335,6 +337,8 @@ public static class Win32DefaultAppApi
             }
         }
 
+        RegisterApplicationKey(classesKey, extensions);
+
         classesKey?.Dispose();
     }
 
@@ -403,6 +407,12 @@ public static class Win32DefaultAppApi
 
             using var extKey = root.OpenSubKey($@"Software\Classes\{ext}");
             if (extKey?.GetValue("") as string == progId) return false;
+
+            using var openWith = extKey?.OpenSubKey("OpenWithProgids");
+            if (openWith?.GetValue(progId) is not null) return false;
+
+            using var typesKey = root.OpenSubKey($@"Software\Classes\Applications\{Path.GetFileName(LaunchCommandExe)}\SupportedTypes");
+            if (typesKey?.GetValue(ext) is null) return false;
             if (!isElevated) continue;
 
             using var machineKey = Registry.LocalMachine.OpenSubKey($@"Software\Classes\{progId}");
@@ -431,19 +441,14 @@ public static class Win32DefaultAppApi
                 var extNoDot = ext.TrimStart('.').ToUpperInvariant();
                 var progId = GetProgId(extNoDot);
 
-                if (enable)
-                {
-                    RegisterProgId(classesKey, progId, extNoDot);
-                    using var openWith = classesKey.CreateSubKey($@"{ext}\OpenWithProgids", writable: true);
-                    openWith.SetValue(progId, string.Empty);
-                }
-                else
-                {
-                    classesKey.DeleteSubKeyTree(progId, throwOnMissingSubKey: false);
-                    using var openWith = classesKey.OpenSubKey($@"{ext}\OpenWithProgids", writable: true);
-                    openWith?.DeleteValue(progId, throwOnMissingValue: false);
-                }
+                if (enable) RegisterProgId(classesKey, progId, extNoDot);
+                else classesKey.DeleteSubKeyTree(progId, throwOnMissingSubKey: false);
+
+                AssociateExtensionDefault(classesKey, ext, progId);
             }
+
+            if (enable) RegisterApplicationKey(classesKey, extensions);
+            else UnregisterApplicationKey(classesKey);
         }
         catch { }
     }
@@ -498,7 +503,7 @@ public static class Win32DefaultAppApi
 
 
     /// <summary>
-    /// Adds our ProgId to the extension's <c>OpenWithProgids</c>, and removes it as the classic default.
+    /// Removes our ProgId as the extension's classic default and from its <c>OpenWithProgids</c>.
     /// GlassHouse: Windows ignores an app-written default (the type stays on "Pick an app"), and Explorer then shows
     /// that raw value as the type name, e.g. "GlassHouse.AssocFile.JPG". Windows Settings picks the default instead.
     /// </summary>
@@ -506,13 +511,45 @@ public static class Win32DefaultAppApi
     {
         if (classesKey is null) return;
 
-        // <root>\Software\Classes\.<EXT>  (OpenWithProgids only)
-        using var extKey = classesKey.CreateSubKey(ext, writable: true);
+        // <root>\Software\Classes\.<EXT>: GlassHouse writes nothing here, it only removes what older versions wrote
+        using var extKey = classesKey.OpenSubKey(ext, writable: true);
+        if (extKey is null) return;
         if (extKey.GetValue("") as string == progId) extKey.DeleteValue("", throwOnMissingValue: false);
 
-        using var openWith = extKey.CreateSubKey("OpenWithProgids", writable: true);
-        openWith.SetValue(progId, string.Empty);
+        using var openWith = extKey.OpenSubKey("OpenWithProgids", writable: true);
+        openWith?.DeleteValue(progId, throwOnMissingValue: false);
     }
+
+
+    /// <summary>
+    /// Offers the app in Explorer's "Open with" through <c>Applications\GlassHouse.exe\SupportedTypes</c>.
+    /// GlassHouse: a new <c>OpenWithProgids</c> entry makes Windows switch each type to "Pick an app", and Explorer
+    /// then shows the raw ProgId as the type ("giffile"); this key offers the app without that.
+    /// </summary>
+    private static void RegisterApplicationKey(RegistryKey? classesKey, string[] extensions)
+    {
+        if (classesKey is null) return;
+
+        using var appKey = classesKey.CreateSubKey($@"Applications\{Path.GetFileName(LaunchCommandExe)}", writable: true);
+        using (var openKey = appKey.CreateSubKey(@"shell\open", writable: true))
+        {
+            openKey.SetValue("FriendlyAppName", BHelper.AppName);
+            using var commandKey = openKey.CreateSubKey("command", writable: true);
+            commandKey.SetValue("", $"\"{LaunchCommandExe}\" \"%1\"");
+        }
+
+        // exactly the registered formats: a dropped format leaves no stale entry
+        using var typesKey = appKey.CreateSubKey("SupportedTypes", writable: true);
+        foreach (var name in typesKey.GetValueNames()) typesKey.DeleteValue(name, throwOnMissingValue: false);
+        foreach (var ext in extensions) typesKey.SetValue(ext, string.Empty);
+    }
+
+
+    /// <summary>
+    /// Removes the app's <c>Applications\GlassHouse.exe</c> key.
+    /// </summary>
+    private static void UnregisterApplicationKey(RegistryKey? classesKey)
+        => classesKey?.DeleteSubKeyTree($@"Applications\{Path.GetFileName(LaunchCommandExe)}", throwOnMissingSubKey: false);
 
 
     /// <summary>
@@ -564,6 +601,7 @@ public static class Win32DefaultAppApi
         // <root>\Software\Classes\...
         using var classesKey = root.OpenSubKey(@"Software\Classes", writable: true);
         UnregisterExtensions(classesKey, extensions);
+        UnregisterApplicationKey(classesKey);
     }
 
 
