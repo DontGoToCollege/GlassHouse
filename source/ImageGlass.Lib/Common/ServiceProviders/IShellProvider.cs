@@ -118,6 +118,12 @@ public interface IShellProvider : IDisposable
 
 
     /// <summary>
+    /// GlassHouse: makes this app the default for the extensions in one click; returns how many it now opens, or -1.
+    /// </summary>
+    Task<int> MakeDefaultPhotoViewerAsync(string[] extensions) => Task.FromResult(-1);
+
+
+    /// <summary>
     /// Gets the registry scope (per-user vs per-machine) that would be used to register
     /// the app as the default photo viewer, based on where the app is installed.
     /// </summary>

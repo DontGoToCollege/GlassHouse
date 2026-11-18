@@ -771,6 +771,9 @@ public enum LangId
     Settings_DefaultPhotoViewer_ScopePerMachine,
     Settings_DefaultPhotoViewer_ScopePerUser,
     Settings_OpenDefaultAppsSetting,
+    Settings_MakeDefaultViewer, // GlassHouse
+    Settings_MakeDefaultViewer_Done, // GlassHouse
+    Settings_MakeDefaultViewer_Failed, // GlassHouse
 
     // File type associations > File formats
     Settings_FileFormats,

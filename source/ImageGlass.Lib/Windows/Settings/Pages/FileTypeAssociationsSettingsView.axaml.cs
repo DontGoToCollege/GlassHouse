@@ -197,6 +197,10 @@ public partial class FileTypeAssociationsSettingsView : SettingsPageView
         var appQueryKey = scope == DefaultAppScope.LocalMachine ? "registeredAppMachine" : "registeredAppUser";
         var defaultAppsUri = $"ms-settings:defaultapps?{appQueryKey}={Uri.EscapeDataString(BHelper.AppName)}";
 
+        // GlassHouse: one click instead of picking GlassHouse per type in Default apps
+        SetLocalizedText(PART_MakeDefault, LangId.Settings_MakeDefaultViewer);
+        PART_MakeDefault.Click += async (_, _) => await AppAPIProvider.MakeDefaultPhotoViewerAsync();
+
         SetLocalizedText(PART_Register, LangId._Register);
         AddLangRefresher(() => ToolTip.SetTip(PART_Register, Core.Lang[LangId.Settings_UnmanagedSettingReminder]));
         PART_Register.Click += async (_, _) => await AppAPIProvider.IG_SetDefaultPhotoViewerAsync();

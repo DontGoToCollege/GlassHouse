@@ -363,17 +363,23 @@ public static class Win32DefaultAppApi
         using var classesKey = Registry.LocalMachine.OpenSubKey(@"Software\Classes");
         using var extKey = classesKey?.OpenSubKey("." + extNoDot.ToLowerInvariant());
 
-        // only the extension's own ProgId: OpenWithProgids lists every app that can open it (a browser's "HTML Document")
-        // and a per-machine install points it at our own ProgId, which says nothing about the type
-        var progId = extKey?.GetValue("") as string;
-        if (!string.IsNullOrEmpty(progId) && !progId.StartsWith(BHelper.AppName + ".", StringComparison.OrdinalIgnoreCase))
+        var candidates = new List<string>();
+        if (extKey?.GetValue("") is string defaultProgId) candidates.Add(defaultProgId);
+        using (var openWith = extKey?.OpenSubKey("OpenWithProgids"))
         {
-            using var progIdKey = classesKey?.OpenSubKey(progId);
+            if (openWith is not null) candidates.AddRange(openWith.GetValueNames());
+        }
+
+        foreach (var progId in candidates)
+        {
+            using var progIdKey = string.IsNullOrEmpty(progId) ? null : classesKey?.OpenSubKey(progId);
 
             var name = progIdKey?.GetValue("") as string;
             var friendlyName = progIdKey?.GetValue("FriendlyTypeName", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
 
-            if (!string.IsNullOrWhiteSpace(name) || !string.IsNullOrWhiteSpace(friendlyName))
+            // only Windows' own types name themselves from a Windows file ("@%SystemRoot%\System32\shell32.dll,-30596");
+            // another app's ProgId (an installed ImageGlass, a browser's "HTML Document") would label the type as its own
+            if (IsWindowsResource(friendlyName))
             {
                 using var iconKey = progIdKey!.OpenSubKey("DefaultIcon");
                 var icon = iconKey?.GetValue("", null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
@@ -385,6 +391,32 @@ public static class Win32DefaultAppApi
         }
 
         return ($"{extNoDot} File", $"{extNoDot} File", WINDOWS_PICTURE_ICON);
+    }
+
+
+    /// <summary>
+    /// Whether an indirect string (<c>@&lt;dll&gt;,-&lt;id&gt;</c>) points into the Windows folder.
+    /// </summary>
+    private static bool IsWindowsResource(string? indirect)
+    {
+        if (indirect is not ['@', ..]) return false;
+
+        var path = Environment.ExpandEnvironmentVariables(indirect[1..]).Trim('"');
+        return path.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.Windows) + @"\", StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// GlassHouse: registers the formats, then makes GlassHouse their default in one click (see <see cref="Win32UserChoiceApi"/>).
+    /// Returns how many formats it now opens, or <c>-1</c> when Windows would not accept it.
+    /// </summary>
+    public static async Task<int> MakeDefaultPhotoViewerAsync(string[] extensions)
+    {
+        if (await SetDefaultPhotoViewerAsync(extensions, true) is null) return -1;
+
+        var made = Win32UserChoiceApi.SetDefaults(extensions, ext => GetProgId(ext.TrimStart('.').ToUpperInvariant()));
+        NotifyShellAssocChanged();
+        return made;
     }
 
 

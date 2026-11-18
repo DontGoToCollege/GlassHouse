@@ -361,6 +361,12 @@ public class Win32ShellProvider : PhDisposable, IShellProvider
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
+    public Task<int> MakeDefaultPhotoViewerAsync(string[] extensions) => Win32DefaultAppApi.MakeDefaultPhotoViewerAsync(extensions);
+
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
     public DefaultAppScope GetDefaultViewerScope() => Win32DefaultAppApi.GetScope();
 
 

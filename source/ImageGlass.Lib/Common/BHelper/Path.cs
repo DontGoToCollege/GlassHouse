@@ -675,6 +675,13 @@ public partial class BHelper
             }
 
 
+            // GlassHouse: an elevated app (UAC off) can't hand ms-settings: to Settings itself, and the failure is silent
+            if (uri.Scheme == "ms-settings" && OperatingSystem.IsWindows())
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{uri.OriginalString}\"") { UseShellExecute = false });
+                return;
+            }
+
             var launcher = TopLevel.GetTopLevel(visual)?.Launcher;
             if (launcher is not null)
             {

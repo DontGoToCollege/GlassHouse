@@ -3594,6 +3594,44 @@ public partial class AppAPIProvider
     /// </summary>
     /// <param name="owner">Modal owner</param>
     /// <param name="lang">Language for the result dialog</param>
+    /// <summary>
+    /// GlassHouse: makes the app the default for every supported format in one click, then says how it went.
+    /// </summary>
+    public static async Task MakeDefaultPhotoViewerAsync(PhWindow? owner = null)
+    {
+        if (Core.ShellProvider is null) return;
+        owner ??= App.MainWindow;
+
+        var extensions = Core.GetSupportedFileExtensions().ToArray();
+        var title = Core.Lang[LangId.Settings_MakeDefaultViewer];
+
+        try
+        {
+            var made = await Core.ShellProvider.MakeDefaultPhotoViewerAsync(extensions);
+            var options = new ModalWindowOptions
+            {
+                Title = title,
+                Heading = made > 0
+                    ? Core.Lang[LangId.Settings_MakeDefaultViewer_Done, made, extensions.Length]
+                    : Core.Lang[LangId.Settings_MakeDefaultViewer_Failed],
+            };
+
+            if (made > 0) await ModalWindow.ShowInfoAsync(owner, options);
+            else await ModalWindow.ShowErrorAsync(owner, options);
+        }
+        catch (Exception ex)
+        {
+            await ModalWindow.ShowErrorAsync(owner, new ModalWindowOptions
+            {
+                Title = title,
+                Heading = Core.Lang[LangId.Settings_MakeDefaultViewer_Failed],
+                Description = ex.Message,
+                Details = ex.ToString(),
+            });
+        }
+    }
+
+
     public static async Task SetDefaultPhotoViewerAsync(bool enable, PhWindow? owner = null, Lang? lang = null)
     {
         if (Core.ShellProvider is null) return;

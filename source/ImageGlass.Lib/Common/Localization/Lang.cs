@@ -1218,6 +1218,9 @@ public class Lang
         new(LangId.Settings_DefaultPhotoViewer_ScopePerMachine, "Scope: all user accounts on this computer (per-machine)."),
         new(LangId.Settings_DefaultPhotoViewer_ScopePerUser, "Scope: your user account only (per-user)."),
         new(LangId.Settings_OpenDefaultAppsSetting, "Open Default apps setting"),
+        new(LangId.Settings_MakeDefaultViewer, "Make ImageGlass the default"), // GlassHouse
+        new(LangId.Settings_MakeDefaultViewer_Done, "ImageGlass now opens {0} of its {1} file types."), // GlassHouse
+        new(LangId.Settings_MakeDefaultViewer_Failed, "Windows didn't accept the change. Choose ImageGlass in Default apps instead."), // GlassHouse
 
         // File type associations > File formats
         new(LangId.Settings_FileFormats, "File formats"),

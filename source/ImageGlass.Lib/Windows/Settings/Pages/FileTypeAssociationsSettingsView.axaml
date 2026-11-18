@@ -74,6 +74,11 @@
             <ui:PhTextBlock x:Name="PART_ScopeInfo" TextWrapping="Wrap" />
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <ui:PhButton
+                    x:Name="PART_MakeDefault"
+                    MinWidth="100"
+                    HorizontalContentAlignment="Center"
+                    Variant="Accent" />
+                <ui:PhButton
                     x:Name="PART_Register"
                     MinWidth="100"
                     HorizontalContentAlignment="Center" />
